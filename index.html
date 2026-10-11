@@ -542,16 +542,69 @@
                     <button class="btn" onclick="addNewPost()">نشر المنشور</button>
                 </div>
 
-                <!-- إدارة المنشورات الحالية (لمسحها) -->
+                <!-- إدارة المنشورات الحالية (لتعديلها أو مسحها) -->
                 <div class="admin-section">
                     <h3>إدارة المنشورات المنشورة</h3>
-                    <div id="adminPostsList" style="max-height: 200px; overflow-y: auto; margin-top: 10px;"></div>
+                    <div id="adminPostsList" style="max-height: 250px; overflow-y: auto; margin-top: 10px;"></div>
                 </div>
 
                 <div class="admin-section">
                     <h3>التقييمات (المعلقة والمعتمدة)</h3>
                     <div id="allReviewsAdminList" style="max-height: 200px; overflow-y: auto;"></div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة تعديل المنشور -->
+    <div class="modal" id="editPostModal">
+        <div class="modal-content">
+            <h2 style="color:var(--primary); text-align:center; margin-bottom:15px;">تعديل المنشور ✏️</h2>
+            <input type="hidden" id="editPostDocId">
+            
+            <label style="font-size: 0.9rem; color:#555;">عنوان المنشور:</label>
+            <input type="text" id="editPostTitle" placeholder="العنوان">
+
+            <label style="font-size: 0.9rem; color:#555;">القسم:</label>
+            <select id="editPostSection"></select>
+
+            <label style="font-size: 0.9rem; color:#555;">الدولة:</label>
+            <select id="editPostCountry">
+                <option value="الكل">جميع الدول العربية</option>
+                <option value="الأردن">الأردن</option>
+                <option value="فلسطين">فلسطين</option>
+                <option value="الإمارات">الإمارات</option>
+                <option value="السعودية">السعودية</option>
+                <option value="مصر">مصر</option>
+                <option value="الكويت">الكويت</option>
+                <option value="قطر">قطر</option>
+                <option value="البحرين">البحرين</option>
+                <option value="عمان">عمان</option>
+                <option value="العراق">العراق</option>
+                <option value="سوريا">سوريا</option>
+                <option value="لبنان">لبنان</option>
+                <option value="اليمن">اليمن</option>
+                <option value="المغرب">المغرب</option>
+                <option value="الجزائر">الجزائر</option>
+                <option value="تونس">تونس</option>
+                <option value="ليبيا">ليبيا</option>
+                <option value="السودان">السودان</option>
+                <option value="موريتانيا">موريتانيا</option>
+                <option value="الصومال">الصومال</option>
+                <option value="جيبوتي">جيبوتي</option>
+                <option value="جزر القمر">جزر القمر</option>
+            </select>
+
+            <label style="font-size: 0.9rem; color:#555;">التفاصيل:</label>
+            <textarea id="editPostDesc" placeholder="التفاصيل"></textarea>
+
+            <label style="font-size: 0.9rem; color:#555;">تغيير الصورة (اختياري):</label>
+            <input type="file" id="editPostImage" accept="image/*" style="margin:5px 0;">
+
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn" style="width:100%;" onclick="saveEditedPost()">حفظ التعديلات</button>
+                <br><br>
+                <button onclick="closeModal('editPostModal')" style="background:none; border:none; color:gray; cursor:pointer; font-weight:bold; font-size:0.9rem;">إغلاق</button>
             </div>
         </div>
     </div>
@@ -666,7 +719,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-analytics.js";
-        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCX3SyPUhfyzjDv9zZqekow_5lvYgarTYM",
@@ -720,13 +773,58 @@
                 grid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; color:#777; padding:40px; font-size:1.1rem; font-weight:bold;">الرجاء الانتظار جاري التحميل...</p>`;
             }
 
-            await loadDataFromCloud();
+            // ضبط حالة السطر الأساسي للصفحة لمنع الخروج عند التراجع
+            history.replaceState({ page: "main" }, "");
+
             await registerOrUpdateVisitorSession();
-            renderAnnouncement();
-            renderSectionsNav();
-            renderPosts();
-            loadAdminData();
+            initRealtimeListeners();
         });
+
+        // نظام الاستماع الفوري لجميع البيانات سحابياً (Real-time Sync)
+        function initRealtimeListeners() {
+            onSnapshot(doc(db, "settings", "main"), (docSnap) => {
+                if(docSnap.exists()) {
+                    let data = docSnap.data();
+                    window.siteAnnouncement = data.announcement || '';
+                    window.announcementSpeed = data.announcementSpeed || 6;
+                    if(data.sections) window.sections = data.sections;
+                    renderAnnouncement();
+                    renderSectionsNav();
+                    loadAdminData();
+                }
+            });
+
+            onSnapshot(collection(db, "posts"), (snapshot) => {
+                window.posts = [];
+                snapshot.forEach(d => window.posts.push({ docId: d.id, ...d.data() }));
+                renderPosts();
+                loadAdminData();
+            });
+
+            onSnapshot(collection(db, "reviews"), (snapshot) => {
+                window.reviews = [];
+                snapshot.forEach(d => window.reviews.push({ docId: d.id, ...d.data() }));
+                loadAdminData();
+            });
+
+            onSnapshot(collection(db, "orders"), (snapshot) => {
+                window.orders = [];
+                snapshot.forEach(d => window.orders.push({ docId: d.id, ...d.data() }));
+                loadAdminData();
+            });
+
+            onSnapshot(collection(db, "messages"), (snapshot) => {
+                window.messages = [];
+                snapshot.forEach(d => window.messages.push({ docId: d.id, ...d.data() }));
+                loadAdminData();
+            });
+
+            onSnapshot(collection(db, "visitors"), (snapshot) => {
+                window.visitors = [];
+                snapshot.forEach(d => window.visitors.push(d.data()));
+                loadAdminData();
+            });
+        }
 
         async function registerOrUpdateVisitorSession() {
             try {
@@ -736,72 +834,44 @@
                 if (!vSnap.exists()) {
                     await setDoc(vDocRef, { visitorId: vId, timestamp: new Date().toLocaleString('ar-JO') });
                 }
-                const visitorsSnap = await getDocs(collection(db, "visitors"));
-                window.visitors = [];
-                visitorsSnap.forEach(d => window.visitors.push(d.data()));
             } catch (e) {
                 console.error("خطأ في تسجيل الزائر:", e);
             }
         }
 
-        async function loadDataFromCloud() {
-            try {
-                const settingsDoc = await getDoc(doc(db, "settings", "main"));
-                if(settingsDoc.exists()) {
-                    let data = settingsDoc.data();
-                    if(data.announcement) window.siteAnnouncement = data.announcement;
-                    if(data.announcementSpeed) window.announcementSpeed = data.announcementSpeed;
-                    if(data.sections) window.sections = data.sections;
-                }
-
-                const postsSnap = await getDocs(collection(db, "posts"));
-                window.posts = [];
-                postsSnap.forEach(d => window.posts.push({ docId: d.id, ...d.data() }));
-
-                const reviewsSnap = await getDocs(collection(db, "reviews"));
-                window.reviews = [];
-                reviewsSnap.forEach(d => window.reviews.push({ docId: d.id, ...d.data() }));
-
-                const ordersSnap = await getDocs(collection(db, "orders"));
-                window.orders = [];
-                ordersSnap.forEach(d => window.orders.push({ docId: d.id, ...d.data() }));
-
-                const messagesSnap = await getDocs(collection(db, "messages"));
-                window.messages = [];
-                messagesSnap.forEach(d => window.messages.push({ docId: d.id, ...d.data() }));
-
-                const visitorsSnap = await getDocs(collection(db, "visitors"));
-                window.visitors = [];
-                visitorsSnap.forEach(d => window.visitors.push(d.data()));
-
-            } catch (e) {
-                console.error("خطأ في جلب البيانات من السحابة:", e);
-            }
-        }
-
+        // فتح النافذة المنبثقة وإضافة نقطة للسجل لمنع خروج المتصفح الخارجي
         window.openModal = function(modalId) {
             let modal = document.getElementById(modalId);
             if(modal && modal.style.display !== 'flex') {
                 modal.style.display = 'flex';
                 window.activeModalsStack.push(modalId);
-                history.pushState({ modalOpen: modalId }, '');
+                history.pushState({ modalOpen: modalId }, "");
             }
         }
 
+        // إغلاق النافذة المنبثقة البرمجية
         window.closeModal = function(modalId) {
             let modal = document.getElementById(modalId);
             if(modal && modal.style.display === 'flex') {
                 modal.style.display = 'none';
                 window.activeModalsStack = window.activeModalsStack.filter(id => id !== modalId);
+                // الرجوع خطوة للخلف في السجل لتعويض الـ pushState
+                if(history.state && history.state.modalOpen === modalId) {
+                    history.back();
+                }
             }
         }
 
+        // التحكم بزر الرجوع (Back Button) خصيصاً لمتصفحات فيسبوك وتويتر
         window.addEventListener('popstate', function(event) {
             if(window.activeModalsStack.length > 0) {
                 let lastModalId = window.activeModalsStack.pop();
                 let modal = document.getElementById(lastModalId);
-                if(modal) modal.style.display = 'none';
-                history.pushState(null, '');
+                if(modal) {
+                    modal.style.display = 'none';
+                }
+                // منع الحدث من الخروج من الموقع وإعادة ضبط سجل الحالة الرئيسي
+                history.pushState({ page: "main" }, "");
             }
         });
 
@@ -833,7 +903,7 @@
             window.announcementSpeed = speed;
             await setDoc(doc(db, "settings", "main"), { announcement: text, announcementSpeed: speed, sections: window.sections }, { merge: true });
             window.renderAnnouncement();
-            alert('تم حفظ ونشر التنويه والسرعة سحابياً بنجاح!');
+            alert('تم حفظ ونشر التنويه والسرعة سحابياً بنجاح وسيتحدث فوراً للجميع!');
         }
 
         window.deleteAnnouncement = async function() {
@@ -873,6 +943,14 @@
                     postSectionSelect.innerHTML += `<option value="${sec}">${sec}</option>`;
                 });
             }
+
+            let editPostSectionSelect = document.getElementById('editPostSection');
+            if(editPostSectionSelect) {
+                editPostSectionSelect.innerHTML = '';
+                window.sections.forEach(sec => {
+                    editPostSectionSelect.innerHTML += `<option value="${sec}">${sec}</option>`;
+                });
+            }
         }
 
         window.openReviewsModal = function() {
@@ -903,13 +981,11 @@
                 return;
             }
             let newRev = { name, text, status: 'pending' };
-            const docRef = await addDoc(collection(db, "reviews"), newRev);
-            window.reviews.push({ docId: docRef.id, ...newRev });
+            await addDoc(collection(db, "reviews"), newRev);
             alert('تم إرسال تقييمك بنجاح، سيتم عرضه بعد موافقة الإدارة.');
             document.getElementById('reviewerName').value = '';
             document.getElementById('reviewText').value = '';
             window.closeModal('reviewModal');
-            window.loadAdminData();
         }
 
         window.openContactModal = function() {
@@ -927,19 +1003,16 @@
             }
 
             let newMsg = { id: Date.now(), name, phone, msg };
-            const docRef = await addDoc(collection(db, "messages"), newMsg);
-            window.messages.push({ docId: docRef.id, ...newMsg });
+            await addDoc(collection(db, "messages"), newMsg);
             alert('تم إرسال رسالتك بنجاح وسيتم الرد عليك قريباً!');
             document.getElementById('contactName').value = '';
             document.getElementById('contactPhone').value = '';
             document.getElementById('contactMessage').value = '';
             window.closeModal('contactModal');
-            window.loadAdminData();
         }
 
         window.openAdminOrdersModal = function() {
             window.openModal('adminOrdersModal');
-            window.loadAdminData();
         }
 
         window.openAdminMessagesModal = function() {
@@ -995,9 +1068,6 @@
         window.deleteMessage = async function(docId) {
             if(confirm('هل أنت متأكد من مسح هذه الرسالة؟')) {
                 await deleteDoc(doc(db, "messages", docId));
-                window.messages = window.messages.filter(m => m.docId !== docId);
-                window.loadAdminMessagesList();
-                window.loadAdminData();
             }
         }
 
@@ -1098,11 +1168,9 @@
             }
 
             let newOrd = { id: Date.now(), name, phone, postTitle, details, status: 'قيد المعالجة' };
-            const docRef = await addDoc(collection(db, "orders"), newOrd);
-            window.orders.push({ docId: docRef.id, ...newOrd });
+            await addDoc(collection(db, "orders"), newOrd);
             alert('تم إرسال طلبك بنجاح! سيتم التواصل معك قريباً.');
             window.closeModal('detailsModal');
-            window.loadAdminData();
         }
 
         let clickCount = 0;
@@ -1118,7 +1186,7 @@
                     document.getElementById('admin-panel').style.display = 'block';
                     alert('مرحباً بك أيها الأدمن (صلاحيات كاملة)!');
                     window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
-                } else if(pass === 'ثائر11') {
+                } else if(pass === 'عدي11') {
                     fullAdminContainer.style.display = 'none';
                     document.getElementById('admin-panel').style.display = 'block';
                     alert('مرحباً بك عدي (طلبات الزوار، الرسائل، والعداد الحقيقي فقط)!');
@@ -1147,8 +1215,6 @@
             window.sections.push(name);
             await setDoc(doc(db, "settings", "main"), { announcement: window.siteAnnouncement, announcementSpeed: window.announcementSpeed, sections: window.sections }, { merge: true });
             document.getElementById('newSectionName').value = '';
-            window.renderSectionsNav();
-            window.loadAdminData();
             alert('تم إضافة القسم بنجاح لجميع الدول والزوار!');
         }
 
@@ -1157,9 +1223,6 @@
                 window.sections = window.sections.filter(s => s !== sec);
                 await setDoc(doc(db, "settings", "main"), { announcement: window.siteAnnouncement, announcementSpeed: window.announcementSpeed, sections: window.sections }, { merge: true });
                 if(window.currentSectionFilter === sec) window.currentSectionFilter = 'الكل';
-                window.renderSectionsNav();
-                window.renderPosts();
-                window.loadAdminData();
             }
         }
 
@@ -1175,9 +1238,6 @@
                 if(index !== -1) {
                     window.sections[index] = newName;
                     await setDoc(doc(db, "settings", "main"), { announcement: window.siteAnnouncement, announcementSpeed: window.announcementSpeed, sections: window.sections }, { merge: true });
-                    window.renderSectionsNav();
-                    window.renderPosts();
-                    window.loadAdminData();
                     alert('تم تحديث وتغيير اسم القسم لجميع الدول بنجاح!');
                 }
             }
@@ -1229,43 +1289,104 @@
         async function saveNewPostData(title, section, country, desc, image) {
             try {
                 let newPost = { id: Date.now(), title, section, country, desc, image };
-                const docRef = await addDoc(collection(db, "posts"), newPost);
-                window.posts.push({ docId: docRef.id, ...newPost });
-                alert('تم نشر المنشور سحابياً بنجاح!');
+                await addDoc(collection(db, "posts"), newPost);
+                alert('تم نشر المنشور سحابياً بنجاح وسيظهر فوراً لدى الزوار!');
                 document.getElementById('postTitle').value = '';
                 document.getElementById('postDesc').value = '';
                 document.getElementById('postImage').value = '';
-                window.renderPosts();
-                window.loadAdminData();
             } catch (err) {
                 console.error("خطأ أثناء النشر:", err);
                 alert("حدث خطأ أثناء حفظ المنشور، يرجى المحاولة مرة أخرى.");
             }
         }
 
+        window.openEditPostModal = function(docId) {
+            let post = window.posts.find(p => p.docId === docId);
+            if(!post) return;
+
+            document.getElementById('editPostDocId').value = post.docId;
+            document.getElementById('editPostTitle').value = post.title;
+            document.getElementById('editPostSection').value = post.section;
+            document.getElementById('editPostCountry').value = post.country;
+            document.getElementById('editPostDesc').value = post.desc;
+            document.getElementById('editPostImage').value = '';
+
+            window.openModal('editPostModal');
+        }
+
+        window.saveEditedPost = function() {
+            let docId = document.getElementById('editPostDocId').value;
+            let title = document.getElementById('editPostTitle').value;
+            let section = document.getElementById('editPostSection').value;
+            let country = document.getElementById('editPostCountry').value;
+            let desc = document.getElementById('editPostDesc').value;
+            let imageInput = document.getElementById('editPostImage');
+
+            if(!title || !desc) {
+                alert('الرجاء إدخال العنوان والتفاصيل');
+                return;
+            }
+
+            let post = window.posts.find(p => p.docId === docId);
+            if(!post) return;
+
+            if(imageInput.files && imageInput.files[0]) {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    let img = new Image();
+                    img.src = e.target.result;
+                    img.onload = function() {
+                        let canvas = document.createElement('canvas');
+                        let ctx = canvas.getContext('2d');
+                        let MAX_WIDTH = 600;
+                        let MAX_HEIGHT = 600;
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > height) {
+                            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                        } else {
+                            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+                        let compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                        executeUpdatePost(docId, title, section, country, desc, compressedDataUrl);
+                    }
+                }
+                reader.readAsDataURL(imageInput.files[0]);
+            } else {
+                executeUpdatePost(docId, title, section, country, desc, post.image);
+            }
+        }
+
+        async function executeUpdatePost(docId, title, section, country, desc, image) {
+            try {
+                let postRef = doc(db, "posts", docId);
+                await updateDoc(postRef, { title, section, country, desc, image });
+
+                alert('تم تعديل المنشور بنجاح!');
+                window.closeModal('editPostModal');
+            } catch(e) {
+                console.error("خطأ أثناء التعديل:", e);
+                alert("حدث خطأ أثناء تعديل المنشور.");
+            }
+        }
+
         window.deletePost = async function(docId) {
             if(confirm('هل أنت متأكد من مسح هذا المنشور؟')) {
                 await deleteDoc(doc(db, "posts", docId));
-                window.posts = window.posts.filter(p => p.docId !== docId);
-                window.renderPosts();
-                window.loadAdminData();
             }
         }
 
         window.deleteOrder = async function(docId) {
             if(confirm('هل أنت متأكد من مسح هذا الطلب؟')) {
                 await deleteDoc(doc(db, "orders", docId));
-                window.orders = window.orders.filter(o => o.docId !== docId);
-                window.loadAdminData();
             }
         }
 
         window.updateOrderStatus = async function(docId, status) {
-            let order = window.orders.find(o => o.docId === docId);
-            if(order) {
-                order.status = status;
-                await updateDoc(doc(db, "orders", docId), { status: status });
-            }
+            await updateDoc(doc(db, "orders", docId), { status: status });
         }
 
         window.loadAdminData = function() {
@@ -1301,7 +1422,10 @@
                     adminPostsList.innerHTML += `
                         <div style="background:#f8f9fa; padding:8px 12px; margin:5px 0; border-radius:6px; display:flex; justify-content:space-between; align-items:center; border:1px solid #eee;">
                             <span style="font-size:0.9rem;">${post.title} <span style="color:#777; font-size:0.8rem;">(قسم: ${post.section} | دولة: ${post.country})</span></span>
-                            <button class="btn-danger" style="padding:3px 8px; font-size:0.75rem;" onclick="deletePost('${post.docId}')">مسح</button>
+                            <div>
+                                <button class="btn" style="padding:3px 8px; background:#0984e3; font-size:0.75rem;" onclick="openEditPostModal('${post.docId}')">تعديل</button>
+                                <button class="btn-danger" style="padding:3px 8px; font-size:0.75rem;" onclick="deletePost('${post.docId}')">مسح</button>
+                            </div>
                         </div>
                     `;
                 });
@@ -1355,19 +1479,12 @@
         }
 
         window.approveReview = async function(docId) {
-            let rev = window.reviews.find(r => r.docId === docId);
-            if(rev) {
-                rev.status = 'approved';
-                await updateDoc(doc(db, "reviews", docId), { status: 'approved' });
-                window.loadAdminData();
-            }
+            await updateDoc(doc(db, "reviews", docId), { status: 'approved' });
         }
 
         window.deleteReview = async function(docId) {
             if(confirm('هل أنت متأكد من مسح هذا التقييم؟')) {
                 await deleteDoc(doc(db, "reviews", docId));
-                window.reviews = window.reviews.filter(r => r.docId !== docId);
-                window.loadAdminData();
             }
         }
     </script>
