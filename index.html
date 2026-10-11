@@ -24,13 +24,32 @@
             color: var(--dark);
             line-height: 1.6;
         }
-        /* هيدر مصغر وأنيق */
+
+        /* شريط التنويه المتحرك في أعلى الصفحة تماماً */
+        .announcement-banner {
+            background: #fff3cd;
+            color: #856404;
+            border-bottom: 1px solid #ffeeba;
+            padding: 10px 0;
+            font-size: 0.95rem;
+            font-weight: bold;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+            overflow: hidden;
+            white-space: nowrap;
+            display: none;
+            width: 100%;
+        }
+        .announcement-banner marquee {
+            width: 100%;
+        }
+
+        /* هيدر مصغر وأنيق بلون أسود */
         header {
-            background: linear-gradient(135deg, var(--primary), #ff8e8e);
+            background: linear-gradient(135deg, #2d3436, #1e272e);
             color: var(--white);
             padding: 15px 20px;
             text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         header h1 {
             font-size: 1.8rem;
@@ -42,36 +61,55 @@
         }
         .search-container {
             margin-top: 10px;
+            position: relative;
+            display: inline-block;
+            width: 40%;
+            max-width: 300px;
         }
         .search-container input {
             padding: 8px 14px;
-            width: 40%;
-            max-width: 300px;
+            width: 100%;
             border: none;
             border-radius: 20px;
             font-size: 0.9rem;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             outline: none;
         }
+
+        /* قائمة الاقتراحات الفورية تحت البحث */
+        #searchSuggestions {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 100%;
+            background: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 999;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: right;
+            display: none;
+            margin-top: 5px;
+            border: 1px solid #eee;
+        }
+        .suggestion-item {
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            color: var(--dark);
+            cursor: pointer;
+            border-bottom: 1px solid #f8f9fa;
+            transition: 0.2s;
+        }
+        .suggestion-item:hover {
+            background: #f1f2f6;
+            color: var(--primary);
+        }
+
         .container {
             max-width: 1100px;
             margin: 20px auto;
             padding: 0 20px;
-        }
-
-        /* شريط التنويه العام للزوار في أول الصفحة */
-        .announcement-banner {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeeba;
-            padding: 12px 20px;
-            border-radius: var(--radius);
-            margin-bottom: 15px;
-            text-align: center;
-            font-size: 0.95rem;
-            font-weight: bold;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
-            display: none; /* يظهر فقط إذا وُجد تنويه */
         }
 
         /* نافذة اختيار الدولة أول دخول الزائر */
@@ -193,12 +231,19 @@
             border-color: var(--secondary);
         }
 
-        /* شبكة المنشورات */
+        /* شبكة المنشورات (كل منشورين جنب بعض) */
         .posts-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
         }
+        @media (max-width: 600px) {
+            .posts-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+        }
+
         .post-card {
             background: var(--white);
             border-radius: var(--radius);
@@ -214,19 +259,20 @@
         }
         .post-card img {
             width: 100%;
-            height: 180px;
-            object-fit: cover;
+            height: 150px;
+            object-fit: contain;
+            background-color: #f8f9fa;
         }
         .post-card-content {
-            padding: 15px;
+            padding: 12px;
         }
         .post-card h3 {
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             color: var(--primary);
-            font-size: 1.1rem;
+            font-size: 1rem;
         }
         .post-card p {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: #666;
         }
 
@@ -355,13 +401,18 @@
 </head>
 <body>
 
+    <!-- شريط التنويه المتحرك أعلى الصفحة تماماً -->
+    <div class="announcement-banner" id="announcementBanner">
+        <marquee id="announcementMarquee" scrollamount="6">📢 <span id="announcementTextDisplay"></span></marquee>
+    </div>
+
     <!-- نافذة اختيار الدولة أول دخول الزائر -->
     <div class="country-modal" id="countryModal" style="display:none;">
         <div class="country-modal-content">
             <h2 style="color:var(--primary); margin-bottom: 10px;">أهلاً بك في موقع انبسط 😄</h2>
             <p style="color: #666; font-size: 0.9rem;">اختر دولتك لعرض المحتوى المخصص لك:</p>
             <select id="userCountrySelect">
-                <option value="الأردن">الأردن</option>
+                <option value="الأردن" selected>الأردن</option>
                 <option value="فلسطين">فلسطين</option>
                 <option value="الإمارات">الإمارات</option>
                 <option value="السعودية">السعودية</option>
@@ -392,16 +443,12 @@
         <h1>موقع انبسط 😄</h1>
         <p>اكتشف، اطلب، وانبسط!</p>
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="ابحث عما تريد..." oninput="filterPosts()">
+            <input type="text" id="searchInput" placeholder="ابحث عما تريد..." oninput="filterPosts()" autocomplete="off">
+            <div id="searchSuggestions"></div>
         </div>
     </header>
 
     <div class="container">
-
-        <!-- شريط التنويه العام (يظهر في أول الصفحة إن وجد) -->
-        <div class="announcement-banner" id="announcementBanner">
-            📢 <span id="announcementTextDisplay"></span>
-        </div>
 
         <!-- شريط الدولة الحالية -->
         <div class="country-banner-top">
@@ -416,93 +463,95 @@
         </div>
 
         <!-- الأقسام المتغيرة -->
-        <div class="sections-nav" id="sectionsNav">
-            <!-- تعبئة ديناميكية -->
-        </div>
+        <div class="sections-nav" id="sectionsNav"></div>
 
         <!-- شبكة المنشورات للزوار -->
-        <div class="posts-grid" id="postsGrid">
-            <!-- ستعرض المنشورات هنا ديناميكياً -->
-        </div>
+        <div class="posts-grid" id="postsGrid"></div>
 
         <!-- لوحة التحكم الخاصة بالادمن -->
         <div id="admin-panel">
             <h2>لوحة تحكم الأدمن 🛠️</h2>
             <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
                 <button class="btn" onclick="openAdminOrdersModal()" style="background:#2ed573;">📥 طلبات الزوار (<span id="adminOrderCount">0</span>)</button>
-                <button class="btn" onclick="openAdminMessagesModal()" style="background:#0984e3;">📬 صندوق رسائل تواصل معنا (<span id="adminMsgCount">0</span>)</button>
+                <button class="btn" onclick="openAdminMessagesModal()" style="background:#0984e3;">📬 رسائل تواصل معنا (<span id="adminMsgCount">0</span>)</button>
+                <button class="btn" onclick="openAdminVisitorsModal()" style="background:#ffa502;">👥 عداد الزوار الحقيقي (<span id="adminVisitorCount">0</span>)</button>
                 <button class="btn" onclick="logoutAdmin()" style="background:#636e72;">تسجيل خروج الأدمن</button>
             </div>
             
-            <!-- إدارة التنويه العام -->
-            <div class="admin-section" style="margin-top:20px;">
-                <h3>إدارة التنويه العام في أول الصفحة 📢</h3>
-                <textarea id="adminAnnouncementInput" placeholder="اكتب نص التنويه الذي سيظهر في أعلى الصفحة للزوار..." style="width:100%; padding:8px; margin:5px 0;"></textarea>
-                <div style="display:flex; gap:10px;">
-                    <button class="btn" onclick="saveAnnouncement()">حفظ ونشر التنويه</button>
-                    <button class="btn-danger" onclick="deleteAnnouncement()">مسح التنويه</button>
+            <!-- أقسام الإدارة المتقدمة (تظهر فقط لكلمة السر ooddaayy) -->
+            <div id="fullAdminSectionsContainer">
+                <!-- إدارة التنويه العام وسرعته -->
+                <div class="admin-section" style="margin-top:20px;">
+                    <h3>إدارة التنويه العام المتحرك وتحديد السرعة 📢</h3>
+                    <textarea id="adminAnnouncementInput" placeholder="اكتب نص التنويه (عربي أو إنجليزي)..." style="width:100%; padding:8px; margin:5px 0;"></textarea>
+                    <label style="font-size: 0.9rem; color:#555;">سرعة حركة الشريط (كلما زاد الرقم تقل الحركة، الافتراضي 6):</label>
+                    <input type="number" id="adminAnnouncementSpeed" value="6" min="1" max="30" style="width:100%; padding:8px; margin:5px 0;">
+                    <div style="display:flex; gap:10px; margin-top:5px;">
+                        <button class="btn" onclick="saveAnnouncement()">حفظ ونشر التنويه والسرعة</button>
+                        <button class="btn-danger" onclick="deleteAnnouncement()">مسح التنويه</button>
+                    </div>
                 </div>
-            </div>
 
-            <!-- إدارة الأقسام -->
-            <div class="admin-section">
-                <h3>إدارة الأقسام (إضافة، تعديل، مسح)</h3>
-                <div style="display:flex; gap:10px; margin:10px 0;">
-                    <input type="text" id="newSectionName" placeholder="اسم القسم الجديد" style="padding:8px; flex:1; border:1px solid #ddd; border-radius:8px;">
-                    <button class="btn" onclick="addSection()">إضافة قسم</button>
+                <!-- إدارة الأقسام -->
+                <div class="admin-section">
+                    <h3>إدارة الأقسام (تتحدث وتتغير فوراً لجميع الدول)</h3>
+                    <div style="display:flex; gap:10px; margin:10px 0;">
+                        <input type="text" id="newSectionName" placeholder="اسم القسم الجديد" style="padding:8px; flex:1; border:1px solid #ddd; border-radius:8px;">
+                        <button class="btn" onclick="addSection()">إضافة قسم</button>
+                    </div>
+                    <div id="adminSectionsList" style="max-height: 150px; overflow-y: auto; margin-top: 10px;"></div>
                 </div>
-                <div id="adminSectionsList" style="max-height: 150px; overflow-y: auto; margin-top: 10px;"></div>
-            </div>
 
-            <div class="admin-section">
-                <h3>إضافة منشور جديد</h3>
-                <input type="text" id="postTitle" placeholder="عنوان المنشور" style="width:100%; padding:8px; margin:5px 0;">
-                
-                <label style="font-size: 0.9rem; color:#555;">اختر القسم:</label>
-                <select id="postSection" style="width:100%; padding:8px; margin:5px 0;"></select>
+                <div class="admin-section">
+                    <h3>إضافة منشور جديد</h3>
+                    <input type="text" id="postTitle" placeholder="عنوان المنشور" style="width:100%; padding:8px; margin:5px 0;">
+                    
+                    <label style="font-size: 0.9rem; color:#555;">اختر القسم:</label>
+                    <select id="postSection" style="width:100%; padding:8px; margin:5px 0;"></select>
 
-                <label style="font-size: 0.9rem; color:#555;">اختر الدولة المخصصة:</label>
-                <select id="postCountry" style="width:100%; padding:8px; margin:5px 0;">
-                    <option value="الكل">جميع الدول العربية</option>
-                    <option value="الأردن">الأردن</option>
-                    <option value="فلسطين">فلسطين</option>
-                    <option value="الإمارات">الإمارات</option>
-                    <option value="السعودية">السعودية</option>
-                    <option value="مصر">مصر</option>
-                    <option value="الكويت">الكويت</option>
-                    <option value="قطر">قطر</option>
-                    <option value="البحرين">البحرين</option>
-                    <option value="عمان">عمان</option>
-                    <option value="العراق">العراق</option>
-                    <option value="سوريا">سوريا</option>
-                    <option value="لبنان">لبنان</option>
-                    <option value="اليمن">اليمن</option>
-                    <option value="المغرب">المغرب</option>
-                    <option value="الجزائر">الجزائر</option>
-                    <option value="تونس">تونس</option>
-                    <option value="ليبيا">ليبيا</option>
-                    <option value="السودان">السودان</option>
-                    <option value="موريتانيا">موريتانيا</option>
-                    <option value="الصومال">الصومال</option>
-                    <option value="جيبوتي">جيبوتي</option>
-                    <option value="جزر القمر">جزر القمر</option>
-                </select>
+                    <label style="font-size: 0.9rem; color:#555;">اختر الدولة المخصصة:</label>
+                    <select id="postCountry" style="width:100%; padding:8px; margin:5px 0;">
+                        <option value="الكل">جميع الدول العربية</option>
+                        <option value="الأردن">الأردن</option>
+                        <option value="فلسطين">فلسطين</option>
+                        <option value="الإمارات">الإمارات</option>
+                        <option value="السعودية">السعودية</option>
+                        <option value="مصر">مصر</option>
+                        <option value="الكويت">الكويت</option>
+                        <option value="قطر">قطر</option>
+                        <option value="البحرين">البحرين</option>
+                        <option value="عمان">عمان</option>
+                        <option value="العراق">العراق</option>
+                        <option value="سوريا">سوريا</option>
+                        <option value="لبنان">لبنان</option>
+                        <option value="اليمن">اليمن</option>
+                        <option value="المغرب">المغرب</option>
+                        <option value="الجزائر">الجزائر</option>
+                        <option value="تونس">تونس</option>
+                        <option value="ليبيا">ليبيا</option>
+                        <option value="السودان">السودان</option>
+                        <option value="موريتانيا">موريتانيا</option>
+                        <option value="الصومال">الصومال</option>
+                        <option value="جيبوتي">جيبوتي</option>
+                        <option value="جزر القمر">جزر القمر</option>
+                    </select>
 
-                <textarea id="postDesc" placeholder="تفاصيل المنشور" style="width:100%; padding:8px; margin:5px 0;"></textarea>
-                <input type="file" id="postImage" accept="image/*" style="margin:5px 0;">
-                <br>
-                <button class="btn" onclick="addNewPost()">نشر المنشور</button>
-            </div>
+                    <textarea id="postDesc" placeholder="تفاصيل المنشور" style="width:100%; padding:8px; margin:5px 0;"></textarea>
+                    <input type="file" id="postImage" accept="image/*" style="margin:5px 0;">
+                    <br>
+                    <button class="btn" onclick="addNewPost()">نشر المنشور</button>
+                </div>
 
-            <!-- إدارة المنشورات الحالية (لمسحها) -->
-            <div class="admin-section">
-                <h3>إدارة المنشورات المنشورة</h3>
-                <div id="adminPostsList" style="max-height: 200px; overflow-y: auto; margin-top: 10px;"></div>
-            </div>
+                <!-- إدارة المنشورات الحالية (لمسحها) -->
+                <div class="admin-section">
+                    <h3>إدارة المنشورات المنشورة</h3>
+                    <div id="adminPostsList" style="max-height: 200px; overflow-y: auto; margin-top: 10px;"></div>
+                </div>
 
-            <div class="admin-section">
-                <h3>التقييمات (المعلقة والمعتمدة)</h3>
-                <div id="allReviewsAdminList" style="max-height: 200px; overflow-y: auto;"></div>
+                <div class="admin-section">
+                    <h3>التقييمات (المعلقة والمعتمدة)</h3>
+                    <div id="allReviewsAdminList" style="max-height: 200px; overflow-y: auto;"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -518,9 +567,7 @@
         <div class="modal-content">
             <h2 style="color:var(--primary); text-align:center; margin-bottom:15px;">آراء وتعليقات الزوار</h2>
             
-            <div id="approvedReviewsList" style="max-height: 180px; overflow-y: auto; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                <!-- تعبئة ديناميكية -->
-            </div>
+            <div id="approvedReviewsList" style="max-height: 180px; overflow-y: auto; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;"></div>
 
             <h3 style="margin-bottom: 8px; font-size:1rem;">أضف تقييمك لموقعنا ⭐</h3>
             <input type="text" id="reviewerName" placeholder="اسمك الكريم">
@@ -535,9 +582,7 @@
 
     <!-- نافذة تفاصيل المنشور والطلب -->
     <div class="details-modal modal" id="detailsModal">
-        <div class="details-content modal-content" id="detailsContent" style="display:block;">
-            <!-- تفاصيل المنشور ونموذج الطلب يظهران هنا -->
-        </div>
+        <div class="details-content modal-content" id="detailsContent" style="display:block;"></div>
     </div>
 
     <!-- نافذة تواصل معنا (للزوّار) -->
@@ -572,9 +617,7 @@
                             <th>الإجراء</th>
                         </tr>
                     </thead>
-                    <tbody id="adminOrdersTable">
-                        <!-- الطلبات تظهر هنا -->
-                    </tbody>
+                    <tbody id="adminOrdersTable"></tbody>
                 </table>
             </div>
             <div style="text-align: center;">
@@ -587,16 +630,36 @@
     <div class="modal" id="adminMessagesModal">
         <div class="modal-content" style="max-width: 600px;">
             <h2 style="color:var(--primary); text-align:center; margin-bottom:15px;">صندوق رسائل "تواصل معنا" 📬</h2>
-            <div id="adminMessagesList" style="max-height: 350px; overflow-y: auto; margin-bottom: 15px;">
-                <!-- الرسائل تظهر هنا ديناميكياً -->
-            </div>
+            <div id="adminMessagesList" style="max-height: 350px; overflow-y: auto; margin-bottom: 15px;"></div>
             <div style="text-align: center;">
                 <button onclick="closeModal('adminMessagesModal')" style="background:none; border:none; color:gray; cursor:pointer; font-weight:bold; font-size:0.9rem;">إغلاق النافذة</button>
             </div>
         </div>
     </div>
 
-    <!-- الزر المخفي المكبر أسفل اليسار (70x70 بكسل، 3 كبسات) -->
+    <!-- نافذة تفاصيل الزوار الحقيقيين للأدمن -->
+    <div class="modal" id="adminVisitorsModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <h2 style="color:var(--primary); text-align:center; margin-bottom:15px;">قائمة الأجهزة الحقيقية المتصلة (الزوار) 👥</h2>
+            <div style="margin-bottom:10px; font-weight:bold; font-size:0.95rem; text-align:center; color:#555;">إجمالي عدد الزوار الفريدين الحقيقيين: <span id="realVisitorCountDisplay" style="color:var(--primary);">0</span></div>
+            <div style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>رقم الجهاز (معرف الجلسة)</th>
+                            <th>تاريخ وزمن أول دخول</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminVisitorsTable"></tbody>
+                </table>
+            </div>
+            <div style="text-align: center;">
+                <button onclick="closeModal('adminVisitorsModal')" style="background:none; border:none; color:gray; cursor:pointer; font-weight:bold; font-size:0.9rem;">إغلاق النافذة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- الزر المخفي المكبر أسفل اليسار -->
     <div id="secret-trigger" onclick="handleSecretClick()" title="مخفي"></div>
 
     <!-- Firebase SDKs -->
@@ -625,62 +688,97 @@
         window.reviews = [];
         window.orders = [];
         window.messages = [];
+        window.visitors = [];
         window.siteAnnouncement = '';
+        window.announcementSpeed = 6;
         window.currentSectionFilter = 'الكل';
         window.userCountry = localStorage.getItem('userCountry');
         window.activeModalsStack = [];
 
-        // جلب البيانات من سحابة Firebase عند تحميل الصفحة
+        function registerVisitorDevice() {
+            let visitorId = localStorage.getItem('uniqueVisitorId');
+            if (!visitorId) {
+                visitorId = 'dev_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+                localStorage.setItem('uniqueVisitorId', visitorId);
+            }
+            return visitorId;
+        }
+
         window.addEventListener('DOMContentLoaded', async () => {
             if(!window.userCountry) {
-                openModal('countryModal');
+                window.userCountry = 'الأردن';
+                localStorage.setItem('userCountry', 'الأردن');
+                document.getElementById('countryModal').style.display = 'none';
+                document.getElementById('currentCountryDisplay').innerText = window.userCountry;
             } else {
                 document.getElementById('countryModal').style.display = 'none';
                 document.getElementById('currentCountryDisplay').innerText = window.userCountry;
             }
+
+            let grid = document.getElementById('postsGrid');
+            if(grid) {
+                grid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; color:#777; padding:40px; font-size:1.1rem; font-weight:bold;">الرجاء الانتظار جاري التحميل...</p>`;
+            }
+
             await loadDataFromCloud();
+            await registerOrUpdateVisitorSession();
             renderAnnouncement();
             renderSectionsNav();
             renderPosts();
             loadAdminData();
         });
 
+        async function registerOrUpdateVisitorSession() {
+            try {
+                let vId = registerVisitorDevice();
+                let vDocRef = doc(db, "visitors", vId);
+                let vSnap = await getDoc(vDocRef);
+                if (!vSnap.exists()) {
+                    await setDoc(vDocRef, { visitorId: vId, timestamp: new Date().toLocaleString('ar-JO') });
+                }
+                const visitorsSnap = await getDocs(collection(db, "visitors"));
+                window.visitors = [];
+                visitorsSnap.forEach(d => window.visitors.push(d.data()));
+            } catch (e) {
+                console.error("خطأ في تسجيل الزائر:", e);
+            }
+        }
+
         async function loadDataFromCloud() {
             try {
-                // جلب الإعدادات (التنويه والأقسام)
                 const settingsDoc = await getDoc(doc(db, "settings", "main"));
                 if(settingsDoc.exists()) {
                     let data = settingsDoc.data();
                     if(data.announcement) window.siteAnnouncement = data.announcement;
+                    if(data.announcementSpeed) window.announcementSpeed = data.announcementSpeed;
                     if(data.sections) window.sections = data.sections;
                 }
 
-                // جلب المنشورات
                 const postsSnap = await getDocs(collection(db, "posts"));
                 window.posts = [];
                 postsSnap.forEach(d => window.posts.push({ docId: d.id, ...d.data() }));
 
-                // جلب التقييمات
                 const reviewsSnap = await getDocs(collection(db, "reviews"));
                 window.reviews = [];
                 reviewsSnap.forEach(d => window.reviews.push({ docId: d.id, ...d.data() }));
 
-                // جلب الطلبات
                 const ordersSnap = await getDocs(collection(db, "orders"));
                 window.orders = [];
                 ordersSnap.forEach(d => window.orders.push({ docId: d.id, ...d.data() }));
 
-                // جلب الرسائل
                 const messagesSnap = await getDocs(collection(db, "messages"));
                 window.messages = [];
                 messagesSnap.forEach(d => window.messages.push({ docId: d.id, ...d.data() }));
+
+                const visitorsSnap = await getDocs(collection(db, "visitors"));
+                window.visitors = [];
+                visitorsSnap.forEach(d => window.visitors.push(d.data()));
 
             } catch (e) {
                 console.error("خطأ في جلب البيانات من السحابة:", e);
             }
         }
 
-        // الدوال العامة والنوافذ المنبثقة
         window.openModal = function(modalId) {
             let modal = document.getElementById(modalId);
             if(modal && modal.style.display !== 'flex') {
@@ -702,9 +800,7 @@
             if(window.activeModalsStack.length > 0) {
                 let lastModalId = window.activeModalsStack.pop();
                 let modal = document.getElementById(lastModalId);
-                if(modal) {
-                    modal.style.display = 'none';
-                }
+                if(modal) modal.style.display = 'none';
                 history.pushState(null, '');
             }
         });
@@ -712,12 +808,18 @@
         window.renderAnnouncement = function() {
             let banner = document.getElementById('announcementBanner');
             let textDisplay = document.getElementById('announcementTextDisplay');
+            let marquee = document.getElementById('announcementMarquee');
             let adminInput = document.getElementById('adminAnnouncementInput');
+            let adminSpeedInput = document.getElementById('adminAnnouncementSpeed');
             
             if(adminInput) adminInput.value = window.siteAnnouncement;
+            if(adminSpeedInput) adminSpeedInput.value = window.announcementSpeed;
+            if(marquee) marquee.setAttribute('scrollamount', window.announcementSpeed);
 
             if(window.siteAnnouncement && window.siteAnnouncement.trim() !== '') {
                 textDisplay.innerText = window.siteAnnouncement;
+                let isEnglish = /^[A-Za-z0-9\s.,!?-]+$/.test(window.siteAnnouncement);
+                marquee.setAttribute('direction', isEnglish ? 'left' : 'right');
                 banner.style.display = 'block';
             } else {
                 banner.style.display = 'none';
@@ -726,16 +828,18 @@
 
         window.saveAnnouncement = async function() {
             let text = document.getElementById('adminAnnouncementInput').value.trim();
+            let speed = parseInt(document.getElementById('adminAnnouncementSpeed').value) || 6;
             window.siteAnnouncement = text;
-            await setDoc(doc(db, "settings", "main"), { announcement: text, sections: window.sections }, { merge: true });
+            window.announcementSpeed = speed;
+            await setDoc(doc(db, "settings", "main"), { announcement: text, announcementSpeed: speed, sections: window.sections }, { merge: true });
             window.renderAnnouncement();
-            alert('تم حفظ ونشر التنويه سحابياً بنجاح!');
+            alert('تم حفظ ونشر التنويه والسرعة سحابياً بنجاح!');
         }
 
         window.deleteAnnouncement = async function() {
             if(confirm('هل أنت متأكد من مسح التنويه العام؟')) {
                 window.siteAnnouncement = '';
-                await setDoc(doc(db, "settings", "main"), { announcement: '', sections: window.sections }, { merge: true });
+                await setDoc(doc(db, "settings", "main"), { announcement: '', announcementSpeed: window.announcementSpeed, sections: window.sections }, { merge: true });
                 window.renderAnnouncement();
                 alert('تم مسح التنويه بنجاح.');
             }
@@ -788,7 +892,6 @@
                     `;
                 });
             }
-
             window.openModal('reviewModal');
         }
 
@@ -844,6 +947,30 @@
             window.loadAdminMessagesList();
         }
 
+        window.openAdminVisitorsModal = function() {
+            window.openModal('adminVisitorsModal');
+            window.loadAdminVisitorsList();
+        }
+
+        window.loadAdminVisitorsList = function() {
+            let list = document.getElementById('adminVisitorsTable');
+            let countDisplay = document.getElementById('realVisitorCountDisplay');
+            if(countDisplay) countDisplay.innerText = window.visitors.length;
+            list.innerHTML = '';
+            if(window.visitors.length === 0) {
+                list.innerHTML = '<tr><td colspan="2" style="color:#777;">لا توجد بيانات زوار حتى الآن.</td></tr>';
+                return;
+            }
+            window.visitors.forEach((v, index) => {
+                list.innerHTML += `
+                    <tr>
+                        <td><strong>زائر رقم (${index + 1}):</strong> <span style="font-family:monospace; color:#0984e3;">${v.visitorId}</span></td>
+                        <td>${v.timestamp || 'غير متوفر'}</td>
+                    </tr>
+                `;
+            });
+        }
+
         window.loadAdminMessagesList = function() {
             let list = document.getElementById('adminMessagesList');
             list.innerHTML = '';
@@ -851,7 +978,7 @@
                 list.innerHTML = '<p style="text-align:center; color:#777; padding:15px;">لا توجد رسائل تواصل حتى الآن.</p>';
                 return;
             }
-            window.messages.forEach((msg, index) => {
+            window.messages.forEach((msg) => {
                 list.innerHTML += `
                     <div style="background:#f8f9fa; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid #eee; position:relative;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
@@ -877,7 +1004,7 @@
         window.renderPosts = function() {
             let grid = document.getElementById('postsGrid');
             grid.innerHTML = '';
-            let searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            let searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
 
             let filtered = window.posts.filter(p => {
                 let matchesCountry = (p.country === 'الكل' || p.country === window.userCountry);
@@ -885,6 +1012,22 @@
                 let matchesSearch = p.title.toLowerCase().includes(searchTerm) || p.desc.toLowerCase().includes(searchTerm);
                 return matchesCountry && matchesSection && matchesSearch;
             });
+
+            let suggestionsBox = document.getElementById('searchSuggestions');
+            if(searchTerm !== '') {
+                let matchedSuggestions = window.posts.filter(p => (p.country === 'الكل' || p.country === window.userCountry) && (p.title.toLowerCase().includes(searchTerm) || p.desc.toLowerCase().includes(searchTerm)));
+                if(matchedSuggestions.length > 0) {
+                    suggestionsBox.innerHTML = '';
+                    matchedSuggestions.forEach(item => {
+                        suggestionsBox.innerHTML += `<div class="suggestion-item" onclick="selectSuggestion('${item.docId}')">📌 ${item.title}</div>`;
+                    });
+                    suggestionsBox.style.display = 'block';
+                } else {
+                    suggestionsBox.style.display = 'none';
+                }
+            } else {
+                suggestionsBox.style.display = 'none';
+            }
 
             if(filtered.length === 0) {
                 grid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; color:#777; padding:20px;">لا توجد منشورات متاحة حالياً لدولة (${window.userCountry}).</p>`;
@@ -898,11 +1041,16 @@
                         <div class="post-card-content">
                             <span style="font-size:0.75rem; color:var(--secondary); font-weight:bold;">${post.section} | 🌍 ${post.country}</span>
                             <h3>${post.title}</h3>
-                            <p>${post.desc.substring(0, 60)}...</p>
+                            <p>${post.desc.substring(0, 50)}...</p>
                         </div>
                     </div>
                 `;
             });
+        }
+
+        window.selectSuggestion = function(docId) {
+            document.getElementById('searchSuggestions').style.display = 'none';
+            openPostDetails(docId);
         }
 
         window.changeSection = function(section) {
@@ -920,7 +1068,9 @@
             let content = document.getElementById('detailsContent');
 
             content.innerHTML = `
-                <img src="${post.image}" style="width:100%; height:200px; object-fit:cover; border-radius:8px; margin-bottom:12px;">
+                <div style="background-color: #f8f9fa; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; overflow: hidden;">
+                    <img src="${post.image}" style="max-width: 100%; max-height: 350px; object-fit: contain;">
+                </div>
                 <h2 style="color:var(--primary); margin-bottom:8px; font-size:1.3rem;">${post.title}</h2>
                 <p style="margin-bottom:15px; font-size:0.9rem; color:#555;">${post.desc}</p>
                 <hr style="margin:12px 0; border:0; border-top:1px solid #eee;">
@@ -961,9 +1111,17 @@
             if(clickCount === 3) {
                 clickCount = 0;
                 let pass = prompt('أدخل كلمة سر الأدمن:');
+                let fullAdminContainer = document.getElementById('fullAdminSectionsContainer');
+                
                 if(pass === 'ooddaayy') {
+                    fullAdminContainer.style.display = 'block';
                     document.getElementById('admin-panel').style.display = 'block';
-                    alert('مرحباً بك أيها الأدمن!');
+                    alert('مرحباً بك أيها الأدمن (صلاحيات كاملة)!');
+                    window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+                } else if(pass === 'ثائر11') {
+                    fullAdminContainer.style.display = 'none';
+                    document.getElementById('admin-panel').style.display = 'block';
+                    alert('مرحباً بك عدي (طلبات الزوار، الرسائل، والعداد الحقيقي فقط)!');
                     window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
                 } else if(pass !== null) {
                     alert('كلمة المرور غير صحيحة!');
@@ -987,17 +1145,17 @@
                 return;
             }
             window.sections.push(name);
-            await setDoc(doc(db, "settings", "main"), { announcement: window.siteAnnouncement, sections: window.sections }, { merge: true });
+            await setDoc(doc(db, "settings", "main"), { announcement: window.siteAnnouncement, announcementSpeed: window.announcementSpeed, sections: window.sections }, { merge: true });
             document.getElementById('newSectionName').value = '';
             window.renderSectionsNav();
             window.loadAdminData();
-            alert('تم إضافة القسم بنجاح!');
+            alert('تم إضافة القسم بنجاح لجميع الدول والزوار!');
         }
 
         window.deleteSection = async function(sec) {
-            if(confirm(`هل أنت متأكد من مسح القسم (${sec})؟`)) {
+            if(confirm(`هل أنت متأكد من مسح القسم (${sec}) لجميع الدول؟`)) {
                 window.sections = window.sections.filter(s => s !== sec);
-                await setDoc(doc(db, "settings", "main"), { announcement: window.siteAnnouncement, sections: window.sections }, { merge: true });
+                await setDoc(doc(db, "settings", "main"), { announcement: window.siteAnnouncement, announcementSpeed: window.announcementSpeed, sections: window.sections }, { merge: true });
                 if(window.currentSectionFilter === sec) window.currentSectionFilter = 'الكل';
                 window.renderSectionsNav();
                 window.renderPosts();
@@ -1006,7 +1164,7 @@
         }
 
         window.editSection = async function(oldName) {
-            let newName = prompt('أدخل الاسم الجديد للقسم:', oldName);
+            let newName = prompt('أدخل الاسم الجديد للقسم (سيتم تحديثه لجميع الدول):', oldName);
             if(newName && newName.trim() !== '' && newName !== oldName) {
                 newName = newName.trim();
                 if(window.sections.includes(newName)) {
@@ -1016,11 +1174,11 @@
                 let index = window.sections.indexOf(oldName);
                 if(index !== -1) {
                     window.sections[index] = newName;
-                    await setDoc(doc(db, "settings", "main"), { announcement: window.siteAnnouncement, sections: window.sections }, { merge: true });
+                    await setDoc(doc(db, "settings", "main"), { announcement: window.siteAnnouncement, announcementSpeed: window.announcementSpeed, sections: window.sections }, { merge: true });
                     window.renderSectionsNav();
                     window.renderPosts();
                     window.loadAdminData();
-                    alert('تم تحديث اسم القسم بنجاح!');
+                    alert('تم تحديث وتغيير اسم القسم لجميع الدول بنجاح!');
                 }
             }
         }
@@ -1041,7 +1199,26 @@
             if(imageInput.files && imageInput.files[0]) {
                 let reader = new FileReader();
                 reader.onload = function(e) {
-                    saveNewPostData(title, section, country, desc, e.target.result);
+                    let img = new Image();
+                    img.src = e.target.result;
+                    img.onload = function() {
+                        let canvas = document.createElement('canvas');
+                        let ctx = canvas.getContext('2d');
+                        let MAX_WIDTH = 600;
+                        let MAX_HEIGHT = 600;
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > height) {
+                            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                        } else {
+                            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+                        let compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                        saveNewPostData(title, section, country, desc, compressedDataUrl);
+                    }
                 }
                 reader.readAsDataURL(imageInput.files[0]);
             } else {
@@ -1050,15 +1227,20 @@
         }
 
         async function saveNewPostData(title, section, country, desc, image) {
-            let newPost = { id: Date.now(), title, section, country, desc, image };
-            const docRef = await addDoc(collection(db, "posts"), newPost);
-            window.posts.push({ docId: docRef.id, ...newPost });
-            alert('تم نشر المنشور سحابياً بنجاح ولن يظهر إلا للدولة المحددة!');
-            document.getElementById('postTitle').value = '';
-            document.getElementById('postDesc').value = '';
-            document.getElementById('postImage').value = '';
-            window.renderPosts();
-            window.loadAdminData();
+            try {
+                let newPost = { id: Date.now(), title, section, country, desc, image };
+                const docRef = await addDoc(collection(db, "posts"), newPost);
+                window.posts.push({ docId: docRef.id, ...newPost });
+                alert('تم نشر المنشور سحابياً بنجاح!');
+                document.getElementById('postTitle').value = '';
+                document.getElementById('postDesc').value = '';
+                document.getElementById('postImage').value = '';
+                window.renderPosts();
+                window.loadAdminData();
+            } catch (err) {
+                console.error("خطأ أثناء النشر:", err);
+                alert("حدث خطأ أثناء حفظ المنشور، يرجى المحاولة مرة أخرى.");
+            }
         }
 
         window.deletePost = async function(docId) {
@@ -1092,6 +1274,9 @@
 
             let adminMsgCount = document.getElementById('adminMsgCount');
             if(adminMsgCount) adminMsgCount.innerText = window.messages.length;
+
+            let adminVisitorCount = document.getElementById('adminVisitorCount');
+            if(adminVisitorCount) adminVisitorCount.innerText = window.visitors.length;
 
             let adminSectionsList = document.getElementById('adminSectionsList');
             adminSectionsList.innerHTML = '';
