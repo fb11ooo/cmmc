@@ -25,24 +25,6 @@
             line-height: 1.6;
         }
 
-        /* شريط التنويه المتحرك في أعلى الصفحة تماماً */
-        .announcement-banner {
-            background: #fff3cd;
-            color: #856404;
-            border-bottom: 1px solid #ffeeba;
-            padding: 10px 0;
-            font-size: 0.95rem;
-            font-weight: bold;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
-            overflow: hidden;
-            white-space: nowrap;
-            display: none;
-            width: 100%;
-        }
-        .announcement-banner marquee {
-            width: 100%;
-        }
-
         /* هيدر مصغر وأنيق بلون أسود */
         header {
             background: linear-gradient(135deg, #2d3436, #1e272e);
@@ -180,7 +162,7 @@
             border: 1px solid #eaeaea;
             padding: 10px 20px;
             border-radius: var(--radius);
-            margin-bottom: 25px;
+            margin-bottom: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -203,6 +185,23 @@
         }
         .review-mini-btn:hover {
             opacity: 0.9;
+        }
+
+        /* شريط التنويه الثابت تحت آراء الزوار */
+        .announcement-banner {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            padding: 12px 18px;
+            border-radius: var(--radius);
+            font-size: 0.95rem;
+            font-weight: bold;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+            display: none;
+            width: 100%;
+            margin-bottom: 25px;
+            text-align: center;
+            word-break: break-word;
         }
 
         /* شريط الأقسام */
@@ -421,11 +420,6 @@
 </head>
 <body>
 
-    <!-- شريط التنويه المتحرك أعلى الصفحة تماماً -->
-    <div class="announcement-banner" id="announcementBanner">
-        <marquee id="announcementMarquee" scrollamount="6">📢 <span id="announcementTextDisplay"></span></marquee>
-    </div>
-
     <!-- نافذة اختيار الدولة أول دخول الزائر -->
     <div class="country-modal" id="countryModal" style="display:none;">
         <div class="country-modal-content">
@@ -482,6 +476,11 @@
             <button class="review-mini-btn" onclick="openReviewsModal()">عرض وإضافة تقييم</button>
         </div>
 
+        <!-- شريط التنويه الثابت تحت آراء الزوار تماماً -->
+        <div class="announcement-banner" id="announcementBanner">
+            📢 <span id="announcementTextDisplay"></span>
+        </div>
+
         <!-- الأقسام المتغيرة -->
         <div class="sections-nav" id="sectionsNav"></div>
 
@@ -500,14 +499,12 @@
             
             <!-- أقسام الإدارة المتقدمة (تظهر فقط لكلمة السر ooddaayy) -->
             <div id="fullAdminSectionsContainer">
-                <!-- إدارة التنويه العام وسرعته -->
+                <!-- إدارة التنويه العام -->
                 <div class="admin-section" style="margin-top:20px;">
-                    <h3>إدارة التنويه العام المتحرك وتحديد السرعة 📢</h3>
-                    <textarea id="adminAnnouncementInput" placeholder="اكتب نص التنويه (عربي أو إنجليزي)..." style="width:100%; padding:8px; margin:5px 0;"></textarea>
-                    <label style="font-size: 0.9rem; color:#555;">سرعة حركة الشريط (كلما زاد الرقم تقل الحركة، الافتراضي 6):</label>
-                    <input type="number" id="adminAnnouncementSpeed" value="6" min="1" max="30" style="width:100%; padding:8px; margin:5px 0;">
+                    <h3>إدارة التنويه العام الثابت 📢</h3>
+                    <textarea id="adminAnnouncementInput" placeholder="اكتب نص التنويه الثابت..." style="width:100%; padding:8px; margin:5px 0;"></textarea>
                     <div style="display:flex; gap:10px; margin-top:5px;">
-                        <button class="btn" onclick="saveAnnouncement()">حفظ ونشر التنويه والسرعة</button>
+                        <button class="btn" onclick="saveAnnouncement()">حفظ ونشر التنويه</button>
                         <button class="btn-danger" onclick="deleteAnnouncement()">مسح التنويه</button>
                     </div>
                 </div>
@@ -565,7 +562,7 @@
                         <option value="details">اسمك، رقمك مع رمز الدولة، والتفاصيل</option>
                     </select>
 
-                    <!-- إعدادات الرد الآلي / أو الرابط المباشر الذي يضعه الأدمن -->
+                    <!-- الرابط أو الرد الآلي -->
                     <label style="font-size: 0.9rem; color:#555; font-weight:bold;" id="postAutoReplyLabel">الرابط المستهدف (أو الرد الآلي):</label>
                     <input type="text" id="postAutoReplyValue" placeholder="أدخل الرابط أو نص الرسالة هنا..." style="width:100%; padding:8px; margin:5px 0;">
 
@@ -674,7 +671,7 @@
         </div>
     </div>
 
-    <!-- نافذة تفاصيل المنشور والطلب (متكيفة حسب اختيار الأدمن) -->
+    <!-- نافذة تفاصيل المنشور والطلب -->
     <div class="details-modal modal" id="detailsModal">
         <div class="details-content modal-content" id="detailsContent" style="display:block;"></div>
     </div>
@@ -782,7 +779,6 @@
         window.messages = [];
         window.visitors = [];
         window.siteAnnouncement = '';
-        window.announcementSpeed = 6;
         window.currentSectionFilter = 'الكل';
         window.userCountry = localStorage.getItem('userCountry');
         window.activeModalsStack = [];
@@ -823,11 +819,17 @@
             onSnapshot(doc(db, "settings", "main"), (docSnap) => {
                 if(docSnap.exists()) {
                     let data = docSnap.data();
-                    window.siteAnnouncement = data.announcement || '';
-                    window.announcementSpeed = data.announcementSpeed || 6;
-                    if(data.sections) window.sections = data.sections;
-                    renderAnnouncement();
-                    renderSectionsNav();
+                    let newAnnouncement = data.announcement || '';
+                    
+                    if(window.siteAnnouncement !== newAnnouncement) {
+                        window.siteAnnouncement = newAnnouncement;
+                        renderAnnouncement();
+                    }
+
+                    if(data.sections && JSON.stringify(window.sections) !== JSON.stringify(data.sections)) {
+                        window.sections = data.sections;
+                        renderSectionsNav();
+                    }
                     loadAdminData();
                 }
             });
@@ -911,18 +913,14 @@
         window.renderAnnouncement = function() {
             let banner = document.getElementById('announcementBanner');
             let textDisplay = document.getElementById('announcementTextDisplay');
-            let marquee = document.getElementById('announcementMarquee');
             let adminInput = document.getElementById('adminAnnouncementInput');
-            let adminSpeedInput = document.getElementById('adminAnnouncementSpeed');
             
-            if(adminInput) adminInput.value = window.siteAnnouncement;
-            if(adminSpeedInput) adminSpeedInput.value = window.announcementSpeed;
-            if(marquee) marquee.setAttribute('scrollamount', window.announcementSpeed);
+            if(adminInput && adminInput.value !== window.siteAnnouncement) {
+                adminInput.value = window.siteAnnouncement;
+            }
 
             if(window.siteAnnouncement && window.siteAnnouncement.trim() !== '') {
                 textDisplay.innerText = window.siteAnnouncement;
-                let isEnglish = /^[A-Za-z0-9\s.,!?-]+$/.test(window.siteAnnouncement);
-                marquee.setAttribute('direction', isEnglish ? 'left' : 'right');
                 banner.style.display = 'block';
             } else {
                 banner.style.display = 'none';
@@ -931,18 +929,16 @@
 
         window.saveAnnouncement = async function() {
             let text = document.getElementById('adminAnnouncementInput').value.trim();
-            let speed = parseInt(document.getElementById('adminAnnouncementSpeed').value) || 6;
             window.siteAnnouncement = text;
-            window.announcementSpeed = speed;
-            await setDoc(doc(db, "settings", "main"), { announcement: text, announcementSpeed: speed, sections: window.sections }, { merge: true });
+            await setDoc(doc(db, "settings", "main"), { announcement: text, sections: window.sections }, { merge: true });
             window.renderAnnouncement();
-            alert('تم حفظ ونشر التنويه والسرعة سحابياً بنجاح وسيتحدث فوراً للجميع!');
+            alert('تم حفظ ونشر التنويه الثابت سحابياً بنجاح!');
         }
 
         window.deleteAnnouncement = async function() {
             if(confirm('هل أنت متأكد من مسح التنويه العام؟')) {
                 window.siteAnnouncement = '';
-                await setDoc(doc(db, "settings", "main"), { announcement: '', announcementSpeed: window.announcementSpeed, sections: window.sections }, { merge: true });
+                await setDoc(doc(db, "settings", "main"), { announcement: '', sections: window.sections }, { merge: true });
                 window.renderAnnouncement();
                 alert('تم مسح التنويه بنجاح.');
             }
@@ -1178,7 +1174,7 @@
             if(interactionType === 'link') {
                 let targetLink = post.autoReplyValue || '#';
                 formHtml = `
-                    <h3 style="margin-bottom:8px; font-size:1rem; text-align:center;">رابط المنشور المخصص:</h3>
+                    <h3 style="margin-bottom:8px; font-size:1rem; text-align:center;">اعمل لقطه لشاشه وراسلنا:</h3>
                     <div style="text-align:center; margin: 15px 0;">
                         <a href="${targetLink}" target="_blank" class="btn" style="display:inline-block; text-decoration:none; padding:12px 30px; font-size:1.1rem;">انقر هنا لتواصل معنا على فيس بوك </a>
                     </div>
@@ -1275,7 +1271,7 @@
                 return;
             }
             window.sections.push(name);
-            await setDoc(doc(db, "settings", "main"), { announcement: window.siteAnnouncement, announcementSpeed: window.announcementSpeed, sections: window.sections }, { merge: true });
+            await setDoc(doc(db, "settings", "main"), { announcement: window.siteAnnouncement, sections: window.sections }, { merge: true });
             document.getElementById('newSectionName').value = '';
             alert('تم إضافة القسم بنجاح لجميع الدول والزوار!');
         }
@@ -1283,7 +1279,7 @@
         window.deleteSection = async function(sec) {
             if(confirm(`هل أنت متأكد من مسح القسم (${sec}) لجميع الدول؟`)) {
                 window.sections = window.sections.filter(s => s !== sec);
-                await setDoc(doc(db, "settings", "main"), { announcement: window.siteAnnouncement, announcementSpeed: window.announcementSpeed, sections: window.sections }, { merge: true });
+                await setDoc(doc(db, "settings", "main"), { announcement: window.siteAnnouncement, sections: window.sections }, { merge: true });
                 if(window.currentSectionFilter === sec) window.currentSectionFilter = 'الكل';
             }
         }
@@ -1299,7 +1295,7 @@
                 let index = window.sections.indexOf(oldName);
                 if(index !== -1) {
                     window.sections[index] = newName;
-                    await setDoc(doc(db, "settings", "main"), { announcement: window.siteAnnouncement, announcementSpeed: window.announcementSpeed, sections: window.sections }, { merge: true });
+                    await setDoc(doc(db, "settings", "main"), { announcement: window.siteAnnouncement, sections: window.sections }, { merge: true });
                     alert('تم تحديث وتغيير اسم القسم لجميع الدول بنجاح!');
                 }
             }
