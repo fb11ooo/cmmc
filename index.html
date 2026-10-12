@@ -252,6 +252,7 @@
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
             border: 1px solid #eee;
+            position: relative;
         }
         .post-card:hover {
             transform: translateY(-4px);
@@ -274,6 +275,25 @@
         .post-card p {
             font-size: 0.85rem;
             color: #666;
+        }
+        
+        /* زر التعديل السريع على كرت المنشور (يظهر للأدمن فقط) */
+        .quick-edit-btn {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            z-index: 10;
+            display: none;
+        }
+        .quick-edit-btn:hover {
+            background: var(--primary);
         }
 
         /* تذييل الصفحة (Footer) وزر تواصل معنا */
@@ -537,6 +557,18 @@
                     </select>
 
                     <textarea id="postDesc" placeholder="تفاصيل المنشور" style="width:100%; padding:8px; margin:5px 0;"></textarea>
+                    
+                    <!-- اختيار طريقة التفاعل للمنشور -->
+                    <label style="font-size: 0.9rem; color:#555; font-weight:bold;">طريقة التفاعل لهذا المنشور (ماذا يظهر للزائر؟):</label>
+                    <select id="postInteractionType" style="width:100%; padding:8px; margin:5px 0;">
+                        <option value="link">رابط (يظهر الرابط الذي يحدده الأدمن مباشرة للزائر)</option>
+                        <option value="details">اسمك، رقمك مع رمز الدولة، والتفاصيل</option>
+                    </select>
+
+                    <!-- إعدادات الرد الآلي / أو الرابط المباشر الذي يضعه الأدمن -->
+                    <label style="font-size: 0.9rem; color:#555; font-weight:bold;" id="postAutoReplyLabel">الرابط المستهدف (أو الرد الآلي):</label>
+                    <input type="text" id="postAutoReplyValue" placeholder="أدخل الرابط أو نص الرسالة هنا..." style="width:100%; padding:8px; margin:5px 0;">
+
                     <input type="file" id="postImage" accept="image/*" style="margin:5px 0;">
                     <br>
                     <button class="btn" onclick="addNewPost()">نشر المنشور</button>
@@ -598,6 +630,15 @@
             <label style="font-size: 0.9rem; color:#555;">التفاصيل:</label>
             <textarea id="editPostDesc" placeholder="التفاصيل"></textarea>
 
+            <label style="font-size: 0.9rem; color:#555; font-weight:bold;">طريقة التفاعل لهذا المنشور:</label>
+            <select id="editPostInteractionType" style="width:100%; padding:8px; margin:5px 0;">
+                <option value="link">رابط (يظهر الرابط الذي يحدده الأدمن مباشرة للزائر)</option>
+                <option value="details">اسمك، رقمك مع رمز الدولة، والتفاصيل</option>
+            </select>
+
+            <label style="font-size: 0.9rem; color:#555; font-weight:bold;">الرابط المستهدف أو الرد الآلي:</label>
+            <input type="text" id="editPostAutoReplyValue" placeholder="رابط التحويل أو نص الرسالة..." style="width:100%; padding:8px; margin:5px 0;">
+
             <label style="font-size: 0.9rem; color:#555;">تغيير الصورة (اختياري):</label>
             <input type="file" id="editPostImage" accept="image/*" style="margin:5px 0;">
 
@@ -633,7 +674,7 @@
         </div>
     </div>
 
-    <!-- نافذة تفاصيل المنشور والطلب -->
+    <!-- نافذة تفاصيل المنشور والطلب (متكيفة حسب اختيار الأدمن) -->
     <div class="details-modal modal" id="detailsModal">
         <div class="details-content modal-content" id="detailsContent" style="display:block;"></div>
     </div>
@@ -656,16 +697,14 @@
 
     <!-- نافذة طلبات الزوار المنبثقة للأدمن -->
     <div class="modal" id="adminOrdersModal">
-        <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-content" style="max-width: 750px;">
             <h2 style="color:var(--primary); text-align:center; margin-bottom:15px;">طلبات الزوار المهتمين 📥</h2>
             <div style="max-height: 350px; overflow-y: auto; margin-bottom: 15px;">
                 <table>
                     <thead>
                         <tr>
-                            <th>الاسم</th>
-                            <th>رقم الهاتف</th>
                             <th>المنشور</th>
-                            <th>الطلب</th>
+                            <th>البيانات المدخلة من الزائر</th>
                             <th>الحالة</th>
                             <th>الإجراء</th>
                         </tr>
@@ -747,6 +786,7 @@
         window.currentSectionFilter = 'الكل';
         window.userCountry = localStorage.getItem('userCountry');
         window.activeModalsStack = [];
+        window.isAdminLoggedIn = false;
 
         function registerVisitorDevice() {
             let visitorId = localStorage.getItem('uniqueVisitorId');
@@ -773,14 +813,12 @@
                 grid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; color:#777; padding:40px; font-size:1.1rem; font-weight:bold;">الرجاء الانتظار جاري التحميل...</p>`;
             }
 
-            // ضبط حالة السطر الأساسي للصفحة لمنع الخروج عند التراجع
             history.replaceState({ page: "main" }, "");
 
             await registerOrUpdateVisitorSession();
             initRealtimeListeners();
         });
 
-        // نظام الاستماع الفوري لجميع البيانات سحابياً (Real-time Sync)
         function initRealtimeListeners() {
             onSnapshot(doc(db, "settings", "main"), (docSnap) => {
                 if(docSnap.exists()) {
@@ -839,7 +877,6 @@
             }
         }
 
-        // فتح النافذة المنبثقة وإضافة نقطة للسجل لمنع خروج المتصفح الخارجي
         window.openModal = function(modalId) {
             let modal = document.getElementById(modalId);
             if(modal && modal.style.display !== 'flex') {
@@ -849,20 +886,17 @@
             }
         }
 
-        // إغلاق النافذة المنبثقة البرمجية
         window.closeModal = function(modalId) {
             let modal = document.getElementById(modalId);
             if(modal && modal.style.display === 'flex') {
                 modal.style.display = 'none';
                 window.activeModalsStack = window.activeModalsStack.filter(id => id !== modalId);
-                // الرجوع خطوة للخلف في السجل لتعويض الـ pushState
                 if(history.state && history.state.modalOpen === modalId) {
                     history.back();
                 }
             }
         }
 
-        // التحكم بزر الرجوع (Back Button) خصيصاً لمتصفحات فيسبوك وتويتر
         window.addEventListener('popstate', function(event) {
             if(window.activeModalsStack.length > 0) {
                 let lastModalId = window.activeModalsStack.pop();
@@ -870,7 +904,6 @@
                 if(modal) {
                     modal.style.display = 'none';
                 }
-                // منع الحدث من الخروج من الموقع وإعادة ضبط سجل الحالة الرئيسي
                 history.pushState({ page: "main" }, "");
             }
         });
@@ -1105,8 +1138,10 @@
             }
 
             filtered.forEach(post => {
+                let editBtnDisplay = window.isAdminLoggedIn ? 'block' : 'none';
                 grid.innerHTML += `
                     <div class="post-card" onclick="openPostDetails('${post.docId}')">
+                        <button class="quick-edit-btn" style="display: ${editBtnDisplay};" onclick="event.stopPropagation(); openEditPostModal('${post.docId}')">✏️ تعديل</button>
                         <img src="${post.image}" alt="صورة المنشور">
                         <div class="post-card-content">
                             <span style="font-size:0.75rem; color:var(--secondary); font-weight:bold;">${post.section} | 🌍 ${post.country}</span>
@@ -1137,6 +1172,27 @@
             let post = window.posts.find(p => p.docId === docId);
             let content = document.getElementById('detailsContent');
 
+            let interactionType = post.interactionType || 'link';
+
+            let formHtml = '';
+            if(interactionType === 'link') {
+                let targetLink = post.autoReplyValue || '#';
+                formHtml = `
+                    <h3 style="margin-bottom:8px; font-size:1rem; text-align:center;">رابط المنشور المخصص:</h3>
+                    <div style="text-align:center; margin: 15px 0;">
+                        <a href="${targetLink}" target="_blank" class="btn" style="display:inline-block; text-decoration:none; padding:12px 30px; font-size:1.1rem;">انقر هنا لتواصل معنا على فيس بوك </a>
+                    </div>
+                `;
+            } else {
+                formHtml = `
+                    <h3 style="margin-bottom:8px; font-size:1rem;">مهتم بهذا المنشور؟ اطلب الآن:</h3>
+                    <input type="text" id="orderName" placeholder="اسمك الكريم">
+                    <input type="text" id="orderPhone" placeholder="رقم الهاتف مع رمز الدولة (+9627xxxxxxxx)">
+                    <textarea id="orderDetails" placeholder="التفاصيل..."></textarea>
+                    <button class="btn" style="width:100%; margin-top:5px;" onclick="submitOrder('${post.docId}', '${post.title}', 'details')">إرسال الطلب</button>
+                `;
+            }
+
             content.innerHTML = `
                 <div style="background-color: #f8f9fa; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; overflow: hidden;">
                     <img src="${post.image}" style="max-width: 100%; max-height: 350px; object-fit: contain;">
@@ -1144,11 +1200,7 @@
                 <h2 style="color:var(--primary); margin-bottom:8px; font-size:1.3rem;">${post.title}</h2>
                 <p style="margin-bottom:15px; font-size:0.9rem; color:#555;">${post.desc}</p>
                 <hr style="margin:12px 0; border:0; border-top:1px solid #eee;">
-                <h3 style="margin-bottom:8px; font-size:1rem;">مهتم بهذا المنشور؟ اطلب الآن:</h3>
-                <input type="text" id="orderName" placeholder="اسمك الكريم">
-                <input type="text" id="orderPhone" placeholder="رقم الهاتف مع رمز الدولة (+9627xxxxxxxx)">
-                <textarea id="orderDetails" placeholder="طلبك التفصيلي..."></textarea>
-                <button class="btn" style="width:100%; margin-top:5px;" onclick="submitOrder('${post.title}')">إرسال الطلب</button>
+                ${formHtml}
                 <br><br>
                 <div style="text-align:center;">
                     <button onclick="closeModal('detailsModal')" style="background:none; border:none; color:gray; cursor:pointer; font-weight:bold; font-size:0.9rem;">إغلاق</button>
@@ -1157,20 +1209,24 @@
             window.openModal('detailsModal');
         }
 
-        window.submitOrder = async function(postTitle) {
-            let name = document.getElementById('orderName').value;
-            let phone = document.getElementById('orderPhone').value;
-            let details = document.getElementById('orderDetails').value;
+        window.submitOrder = async function(postId, postTitle, type) {
+            let post = window.posts.find(p => p.docId === postId);
+            let newOrd = { id: Date.now(), postTitle, status: 'قيد المعالجة' };
 
+            let name = document.getElementById('orderName').value.trim();
+            let phone = document.getElementById('orderPhone').value.trim();
+            let details = document.getElementById('orderDetails').value.trim();
             if(!name || !phone || !details) {
-                alert('الرجاء تعبئة جميع الحقول المطلوبة (الاسم، الهاتف، الطلب التفصيلي)');
+                alert('الرجاء تعبئة جميع الحقول (الاسم، رقم الهاتف، والتفاصيل)');
                 return;
             }
+            newOrd.name = name;
+            newOrd.phone = phone;
+            newOrd.details = details;
 
-            let newOrd = { id: Date.now(), name, phone, postTitle, details, status: 'قيد المعالجة' };
             await addDoc(collection(db, "orders"), newOrd);
-            alert('تم إرسال طلبك بنجاح! سيتم التواصل معك قريباً.');
             window.closeModal('detailsModal');
+            alert('تم إرسال طلبك بنجاح! شكراً لك.');
         }
 
         let clickCount = 0;
@@ -1182,13 +1238,17 @@
                 let fullAdminContainer = document.getElementById('fullAdminSectionsContainer');
                 
                 if(pass === 'ooddaayy') {
+                    window.isAdminLoggedIn = true;
                     fullAdminContainer.style.display = 'block';
                     document.getElementById('admin-panel').style.display = 'block';
+                    renderPosts();
                     alert('مرحباً بك أيها الأدمن (صلاحيات كاملة)!');
                     window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
                 } else if(pass === 'عدي11') {
+                    window.isAdminLoggedIn = true;
                     fullAdminContainer.style.display = 'none';
                     document.getElementById('admin-panel').style.display = 'block';
+                    renderPosts();
                     alert('مرحباً بك عدي (طلبات الزوار، الرسائل، والعداد الحقيقي فقط)!');
                     window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
                 } else if(pass !== null) {
@@ -1198,7 +1258,9 @@
         }
 
         window.logoutAdmin = function() {
+            window.isAdminLoggedIn = false;
             document.getElementById('admin-panel').style.display = 'none';
+            renderPosts();
             alert('تم تسجيل خروج الأدمن');
         }
 
@@ -1248,6 +1310,8 @@
             let section = document.getElementById('postSection').value;
             let country = document.getElementById('postCountry').value;
             let desc = document.getElementById('postDesc').value;
+            let interactionType = document.getElementById('postInteractionType').value;
+            let autoReplyValue = document.getElementById('postAutoReplyValue').value;
             let imageInput = document.getElementById('postImage');
 
             if(!title || !desc) {
@@ -1277,22 +1341,23 @@
                         canvas.height = height;
                         ctx.drawImage(img, 0, 0, width, height);
                         let compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-                        saveNewPostData(title, section, country, desc, compressedDataUrl);
+                        saveNewPostData(title, section, country, desc, interactionType, autoReplyValue, compressedDataUrl);
                     }
                 }
                 reader.readAsDataURL(imageInput.files[0]);
             } else {
-                saveNewPostData(title, section, country, desc, imageURL);
+                saveNewPostData(title, section, country, desc, interactionType, autoReplyValue, imageURL);
             }
         }
 
-        async function saveNewPostData(title, section, country, desc, image) {
+        async function saveNewPostData(title, section, country, desc, interactionType, autoReplyValue, image) {
             try {
-                let newPost = { id: Date.now(), title, section, country, desc, image };
+                let newPost = { id: Date.now(), title, section, country, desc, interactionType, autoReplyType: 'text', autoReplyValue, image };
                 await addDoc(collection(db, "posts"), newPost);
                 alert('تم نشر المنشور سحابياً بنجاح وسيظهر فوراً لدى الزوار!');
                 document.getElementById('postTitle').value = '';
                 document.getElementById('postDesc').value = '';
+                document.getElementById('postAutoReplyValue').value = '';
                 document.getElementById('postImage').value = '';
             } catch (err) {
                 console.error("خطأ أثناء النشر:", err);
@@ -1309,6 +1374,8 @@
             document.getElementById('editPostSection').value = post.section;
             document.getElementById('editPostCountry').value = post.country;
             document.getElementById('editPostDesc').value = post.desc;
+            document.getElementById('editPostInteractionType').value = post.interactionType || 'link';
+            document.getElementById('editPostAutoReplyValue').value = post.autoReplyValue || '';
             document.getElementById('editPostImage').value = '';
 
             window.openModal('editPostModal');
@@ -1320,6 +1387,8 @@
             let section = document.getElementById('editPostSection').value;
             let country = document.getElementById('editPostCountry').value;
             let desc = document.getElementById('editPostDesc').value;
+            let interactionType = document.getElementById('editPostInteractionType').value;
+            let autoReplyValue = document.getElementById('editPostAutoReplyValue').value;
             let imageInput = document.getElementById('editPostImage');
 
             if(!title || !desc) {
@@ -1351,19 +1420,19 @@
                         canvas.height = height;
                         ctx.drawImage(img, 0, 0, width, height);
                         let compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-                        executeUpdatePost(docId, title, section, country, desc, compressedDataUrl);
+                        executeUpdatePost(docId, title, section, country, desc, interactionType, autoReplyValue, compressedDataUrl);
                     }
                 }
                 reader.readAsDataURL(imageInput.files[0]);
             } else {
-                executeUpdatePost(docId, title, section, country, desc, post.image);
+                executeUpdatePost(docId, title, section, country, desc, interactionType, autoReplyValue, post.image);
             }
         }
 
-        async function executeUpdatePost(docId, title, section, country, desc, image) {
+        async function executeUpdatePost(docId, title, section, country, desc, interactionType, autoReplyValue, image) {
             try {
                 let postRef = doc(db, "posts", docId);
-                await updateDoc(postRef, { title, section, country, desc, image });
+                await updateDoc(postRef, { title, section, country, desc, interactionType, autoReplyValue, image });
 
                 alert('تم تعديل المنشور بنجاح!');
                 window.closeModal('editPostModal');
@@ -1453,15 +1522,19 @@
             let ordersTable = document.getElementById('adminOrdersTable');
             ordersTable.innerHTML = '';
             if(window.orders.length === 0) {
-                ordersTable.innerHTML = '<tr><td colspan="6" style="color:#777;">لا توجد طلبات حتى الآن.</td></tr>';
+                ordersTable.innerHTML = '<tr><td colspan="4" style="color:#777;">لا توجد طلبات حتى الآن.</td></tr>';
             } else {
                 window.orders.forEach((ord) => {
+                    let contentCell = `
+                        <strong>الاسم:</strong> ${ord.name || '-'}<br>
+                        <strong>الهاتف:</strong> <a href="https://wa.me/${(ord.phone || '').replace(/[^0-9]/g, '')}" target="_blank" style="color:#0984e3; text-decoration:none;">${ord.phone || '-'}</a><br>
+                        <strong>التفاصيل:</strong> ${ord.details || '-'}
+                    `;
+
                     ordersTable.innerHTML += `
                         <tr>
-                            <td>${ord.name}</td>
-                            <td><a href="https://wa.me/${ord.phone.replace(/[^0-9]/g, '')}" target="_blank" style="color:#0984e3; text-decoration:none;">${ord.phone}</a></td>
                             <td>${ord.postTitle}</td>
-                            <td>${ord.details}</td>
+                            <td style="text-align:right; padding:8px;">${contentCell}</td>
                             <td>
                                 <select onchange="updateOrderStatus('${ord.docId}', this.value)" style="padding:4px; border-radius:4px; font-size:0.85rem;">
                                     <option value="قيد المعالجة" ${ord.status === 'قيد المعالجة' ? 'selected' : ''}>قيد المعالجة</option>
